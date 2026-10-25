@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "search-agent-lab"
+version = "0.1.0"
+description = "Search agents with passage retrieval, evidence decisions and GRPO training"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = ["openai>=1.60", "httpx>=0.27", "python-dotenv>=1.0", "PyYAML>=6"]
+
+[project.optional-dependencies]
+retrieval = ["fastapi>=0.110", "uvicorn>=0.29", "pyserini==0.25.0"]
+train = ["hydra-core>=1.3", "omegaconf>=2.3", "pyarrow>=16", "transformers==5.12.1", "peft==0.19.1"]
+
+[tool.setuptools]
+py-modules = ["retrieval", "evaluate"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent*", "search_r1*", "autosearch*"]
+
+[tool.setuptools.package-data]
+search_r1 = ["config.yaml"]

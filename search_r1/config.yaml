@@ -1,0 +1,109 @@
+# Paths and method are configured by search_r1.train.
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+data:
+  train_batch_size: 8
+  gen_batch_size: 8
+  val_batch_size: 4
+  max_prompt_length: 1024
+  max_response_length: 15360
+  dataloader_num_workers: 0
+  filter_overlong_prompts: true
+  filter_overlong_prompts_workers: 1
+  truncation: error
+  seed: 42
+  shuffle: true
+  val_shuffle: false
+  apply_chat_template_kwargs:
+    enable_thinking: false
+actor_rollout_ref:
+  hybrid_engine: true
+  model:
+    enable_gradient_checkpointing: true
+    use_remove_padding: false
+    use_fused_kernels: false
+    override_config:
+      attn_implementation: sdpa
+    lora_rank: 8
+    lora_alpha: 16
+    target_modules: [q_proj, v_proj]
+  actor:
+    strategy: fsdp2
+    ppo_mini_batch_size: 8
+    ppo_micro_batch_size_per_gpu: 1
+    use_dynamic_bsz: false
+    use_torch_compile: false
+    use_kl_loss: false
+    entropy_coeff: 0.0
+    optim:
+      lr: 1.0e-5
+      weight_decay: 0.0
+    fsdp_config:
+      strategy: fsdp2
+      fsdp_size: 1
+      model_dtype: bf16
+      dtype: bfloat16
+      use_torch_compile: false
+      param_offload: false
+      optimizer_offload: false
+    checkpoint:
+      save_lora_only: true
+  rollout:
+    name: vllm
+    tensor_model_parallel_size: 1
+    dtype: bfloat16
+    n: 4
+    temperature: 1.0
+    top_p: 1.0
+    top_k: -1
+    gpu_memory_utilization: 0.4
+    max_model_len: 16384
+    max_num_batched_tokens: 8192
+    max_num_seqs: 4
+    enforce_eager: true
+    enable_prefix_caching: false
+    enable_chunked_prefill: true
+    log_prob_micro_batch_size_per_gpu: 1
+    agent:
+      num_workers: 1
+      default_agent_loop: search_r1_agent
+    multi_turn:
+      enable: true
+      format: qwen3_coder
+      max_parallel_calls: 1
+      max_user_turns: 4
+      max_assistant_turns: 6
+      max_tool_response_length: 65536
+      tool_response_truncate_side: right
+    val_kwargs:
+      n: 1
+      temperature: 0.0
+      top_p: 1.0
+      top_k: -1
+      do_sample: false
+    engine_kwargs:
+      vllm:
+        limit_mm_per_prompt:
+          image: 0
+          video: 0
+reward:
+  num_workers: 1
+trainer:
+  use_v1: true
+  project_name: search-agent
+  logger: [console]
+  nnodes: 1
+  n_gpus_per_node: 1
+  total_epochs: 30
+  total_training_steps: 500
+  val_before_train: false
+  test_freq: 50
+  save_freq: 5
+  max_actor_ckpt_to_keep: 5
+  resume_mode: auto
+  device: cuda
+ray_kwargs:
+  ray_init:
+    num_cpus: 16
+    object_store_memory: 1073741824
